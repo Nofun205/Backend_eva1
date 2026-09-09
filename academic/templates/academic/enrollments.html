@@ -1,0 +1,60 @@
+{% extends 'academic/base.html' %}
+
+{% block content %}
+<div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: #d35400; margin: 0;">Registro de Inscripciones</h2>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead style="background-color: #f39c12; color: white;">
+                <tr>
+                    <th class="border-0">ID Registro</th>
+                    <th class="border-0">Estudiante</th>
+                    <th class="border-0">Curso Inscrito</th>
+                </tr>
+            </thead>
+            <tbody id="enrollments-table-body" style="border-top: none;">
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-4">Cargando inscripciones...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        fetch('/api/enrollments/')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('enrollments-table-body');
+                tbody.innerHTML = ''; 
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No hay inscripciones registradas.</td></tr>';
+                    return;
+                }
+
+                data.forEach(enrollment => {
+                    const studentName = enrollment.student ? `${enrollment.student.first_name} ${enrollment.student.last_name}` : 'Desconocido';
+                    const courseName = enrollment.course ? enrollment.course.name : 'Desconocido';
+                    
+                    const row = `<tr>
+                        <td>#${enrollment.id}</td>
+                        <td class="fw-bold">${studentName}</td>
+                        <td>${courseName}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('enrollments-table-body').innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar las inscripciones.</td></tr>';
+            });
+    });
+</script>
+{% endblock scripts %}

@@ -21,6 +21,10 @@ def students_view(request):
     """Renderiza la tabla de estudiantes (los datos se llenan vía JS asíncrono)"""
     return render(request, 'academic/students.html')
 
+def enrollments_view(request):
+    """Renderiza la tabla de inscripciones (relación Estudiante-Curso)"""
+    return render(request, 'academic/enrollments.html')
+
 # ==========================================
 # ENDPOINTS DE API (Django REST Framework)
 # ==========================================
