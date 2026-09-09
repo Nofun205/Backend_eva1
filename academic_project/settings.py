@@ -37,8 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
-    'academic',
+    
+    # --- Agregados para el Proyecto ---
+    'rest_framework',  # Dependencia solicitada (Django REST Framework)
+    'academic',        # Nuestra aplicación principal
 ]
 
 MIDDLEWARE = [
