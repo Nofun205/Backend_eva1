@@ -1,0 +1,16 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+media
+
+# Entornos virtuales (aunque lo borramos, es buena práctica)
+venv/
+env/
+ENV/
+
+# VS Code / IDEs
+.vscode/
+.idea/
