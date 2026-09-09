@@ -6,6 +6,26 @@
         <h2 style="color: #d35400; margin: 0;">Registro de Inscripciones</h2>
     </div>
 
+    <!-- Formulario para agregar -->
+    <div class="mb-4 p-3 rounded" style="background-color: #fdebd0;">
+        <h5 style="color: #d35400;">Inscribir Estudiante a Curso</h5>
+        <form id="add-enrollment-form" class="row g-3 mt-1">
+            <div class="col-md-5">
+                <select class="form-select" id="student_id" required>
+                    <option value="" disabled selected>Seleccione un estudiante...</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <select class="form-select" id="course_id" required>
+                    <option value="" disabled selected>Seleccione un curso...</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn w-100" style="background-color: #d35400; color: white;">Inscribir</button>
+            </div>
+        </form>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead style="background-color: #f39c12; color: white;">
@@ -13,11 +33,12 @@
                     <th class="border-0">ID Registro</th>
                     <th class="border-0">Estudiante</th>
                     <th class="border-0">Curso Inscrito</th>
+                    <th class="border-0 text-end">Acciones</th>
                 </tr>
             </thead>
             <tbody id="enrollments-table-body" style="border-top: none;">
                 <tr>
-                    <td colspan="3" class="text-center text-muted py-4">Cargando inscripciones...</td>
+                    <td colspan="4" class="text-center text-muted py-4">Cargando inscripciones...</td>
                 </tr>
             </tbody>
         </table>
@@ -27,7 +48,20 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    function loadDropdowns() {
+        fetch('/api/students/').then(r => r.json()).then(data => {
+            const select = document.getElementById('student_id');
+            select.innerHTML = '<option value="" disabled selected>Seleccione un estudiante...</option>';
+            data.forEach(s => select.innerHTML += `<option value="${s.id}">${s.first_name} ${s.last_name}</option>`);
+        });
+        fetch('/api/courses/').then(r => r.json()).then(data => {
+            const select = document.getElementById('course_id');
+            select.innerHTML = '<option value="" disabled selected>Seleccione un curso...</option>';
+            data.forEach(c => select.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+        });
+    }
+
+    function loadEnrollments() {
         fetch('/api/enrollments/')
             .then(response => response.json())
             .then(data => {
@@ -35,7 +69,7 @@
                 tbody.innerHTML = ''; 
                 
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No hay inscripciones registradas.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay inscripciones registradas.</td></tr>';
                     return;
                 }
 
@@ -47,14 +81,54 @@
                         <td>#${enrollment.id}</td>
                         <td class="fw-bold">${studentName}</td>
                         <td>${courseName}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteEnrollment(${enrollment.id})">Anular</button>
+                        </td>
                     </tr>`;
                     tbody.innerHTML += row;
                 });
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('enrollments-table-body').innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar las inscripciones.</td></tr>';
+                document.getElementById('enrollments-table-body').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error al cargar.</td></tr>';
             });
+    }
+
+    function deleteEnrollment(id) {
+        if(confirm("¿Estás seguro de que deseas anular esta inscripción?")) {
+            fetch(`/api/enrollments/${id}/`, { method: 'DELETE' })
+            .then(() => loadEnrollments())
+            .catch(error => console.error('Error:', error));
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDropdowns();
+        loadEnrollments();
+
+        document.getElementById('add-enrollment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const student_id = document.getElementById('student_id').value;
+            const course_id = document.getElementById('course_id').value;
+
+            fetch('/api/enrollments/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ student: student_id, course: course_id })
+            })
+            .then(response => {
+                if(response.ok) {
+                    document.getElementById('add-enrollment-form').reset();
+                    loadEnrollments();
+                } else {
+                    response.json().then(err => {
+                        console.error(err);
+                        alert("Error al inscribir. Posiblemente el estudiante ya está en ese curso.");
+                    });
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
     });
 </script>
 {% endblock scripts %}

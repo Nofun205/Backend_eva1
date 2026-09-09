@@ -31,7 +31,14 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     Al leer, trae la información completa del estudiante y el curso."""
     student = StudentSerializer(read_only=True)
     course = CourseSerializer(read_only=True)
+    
+    student_id = serializers.PrimaryKeyRelatedField(
+        queryset=Student.objects.all(), source='student', write_only=True
+    )
+    course_id = serializers.PrimaryKeyRelatedField(
+        queryset=Course.objects.all(), source='course', write_only=True
+    )
 
     class Meta:
         model = StudentCourse
-        fields = ['id', 'student', 'course']
+        fields = ['id', 'student', 'course', 'student_id', 'course_id']

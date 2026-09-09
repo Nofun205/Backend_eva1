@@ -2,7 +2,28 @@
 
 {% block content %}
 <div class="card card-custom p-4">
-    <h2 class="mb-4" style="color: #d35400;">Listado de Cursos</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: #d35400; margin: 0;">Listado de Cursos</h2>
+    </div>
+
+    <!-- Formulario para agregar/editar -->
+    <div class="mb-4 p-3 rounded" style="background-color: #fdebd0;">
+        <h5 style="color: #d35400;" id="form-title">Agregar Nuevo Curso</h5>
+        <form id="add-course-form" class="row g-3 mt-1">
+            <div class="col-md-5">
+                <input type="text" class="form-control" id="name" placeholder="Nombre del curso" required>
+            </div>
+            <div class="col-md-5">
+                <select class="form-select" id="teacher_id" required>
+                    <option value="" disabled selected>Seleccione un profesor...</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn w-100" style="background-color: #d35400; color: white;">Guardar</button>
+            </div>
+        </form>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead style="background-color: #f39c12; color: white;">
@@ -10,11 +31,12 @@
                     <th class="border-0">ID</th>
                     <th class="border-0">Nombre del Curso</th>
                     <th class="border-0">Profesor Asignado</th>
+                    <th class="border-0 text-end">Acciones</th>
                 </tr>
             </thead>
             <tbody id="courses-table-body" style="border-top: none;">
                 <tr>
-                    <td colspan="3" class="text-center text-muted py-4">Cargando cursos...</td>
+                    <td colspan="4" class="text-center text-muted py-4">Cargando cursos...</td>
                 </tr>
             </tbody>
         </table>
@@ -24,31 +46,100 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    let editingId = null;
+
+    function loadTeachers() {
+        fetch('/api/teachers/')
+            .then(res => res.json())
+            .then(data => {
+                const select = document.getElementById('teacher_id');
+                select.innerHTML = '<option value="" disabled selected>Seleccione un profesor...</option>';
+                data.forEach(teacher => {
+                    select.innerHTML += `<option value="${teacher.id}">${teacher.first_name} ${teacher.last_name}</option>`;
+                });
+            });
+    }
+
+    function loadCourses() {
         fetch('/api/courses/')
             .then(response => response.json())
             .then(data => {
                 const tbody = document.getElementById('courses-table-body');
-                tbody.innerHTML = ''; // Limpiar tabla
+                tbody.innerHTML = '';
                 
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No hay cursos disponibles.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay cursos disponibles.</td></tr>';
                     return;
                 }
 
                 data.forEach(course => {
+                    const teacherName = course.teacher ? `${course.teacher.first_name} ${course.teacher.last_name}` : 'No asignado';
+                    const teacherId = course.teacher ? course.teacher.id : '';
+                    
                     const row = `<tr>
                         <td>${course.id}</td>
                         <td>${course.name}</td>
-                        <td>${course.teacher ? course.teacher.first_name + ' ' + course.teacher.last_name : 'No asignado'}</td>
+                        <td>${teacherName}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="editCourse(${course.id}, '${course.name}', '${teacherId}')">Editar</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCourse(${course.id})">Eliminar</button>
+                        </td>
                     </tr>`;
                     tbody.innerHTML += row;
                 });
             })
             .catch(error => {
                 console.error('Error fetching courses:', error);
-                document.getElementById('courses-table-body').innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar los cursos.</td></tr>';
+                document.getElementById('courses-table-body').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error al cargar los cursos.</td></tr>';
             });
+    }
+
+    function deleteCourse(id) {
+        if(confirm("¿Estás seguro de que deseas eliminar este curso?")) {
+            fetch(`/api/courses/${id}/`, { method: 'DELETE' })
+            .then(() => loadCourses())
+            .catch(error => console.error('Error:', error));
+        }
+    }
+
+    function editCourse(id, name, teacherId) {
+        editingId = id;
+        document.getElementById('form-title').textContent = "Editar Curso";
+        document.getElementById('name').value = name;
+        document.getElementById('teacher_id').value = teacherId;
+        document.querySelector('#add-course-form button').textContent = "Actualizar";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadTeachers();
+        loadCourses();
+
+        document.getElementById('add-course-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const teacher_id = document.getElementById('teacher_id').value;
+
+            const url = editingId ? `/api/courses/${editingId}/` : '/api/courses/';
+            const method = editingId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, teacher_id })
+            })
+            .then(response => {
+                if(response.ok) {
+                    document.getElementById('add-course-form').reset();
+                    editingId = null;
+                    document.getElementById('form-title').textContent = "Agregar Nuevo Curso";
+                    document.querySelector('#add-course-form button').textContent = "Guardar";
+                    loadCourses();
+                } else {
+                    alert("Hubo un error al guardar.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
     });
 </script>
 {% endblock scripts %}
