@@ -2,7 +2,26 @@
 
 {% block content %}
 <div class="card card-custom p-4">
-    <h2 class="mb-4" style="color: #d35400;">Listado de Estudiantes</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: #d35400; margin: 0;">Listado de Estudiantes</h2>
+    </div>
+
+    <!-- Formulario para agregar -->
+    <div class="mb-4 p-3 rounded" style="background-color: #fdebd0;">
+        <h5 style="color: #d35400;">Agregar Nuevo Estudiante</h5>
+        <form id="add-student-form" class="row g-3 mt-1">
+            <div class="col-md-5">
+                <input type="text" class="form-control" id="first_name" placeholder="Nombre del estudiante" required>
+            </div>
+            <div class="col-md-5">
+                <input type="text" class="form-control" id="last_name" placeholder="Apellido del estudiante" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn w-100" style="background-color: #d35400; color: white;">Guardar</button>
+            </div>
+        </form>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead style="background-color: #f39c12; color: white;">
@@ -24,12 +43,12 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    function loadStudents() {
         fetch('/api/students/')
             .then(response => response.json())
             .then(data => {
                 const tbody = document.getElementById('students-table-body');
-                tbody.innerHTML = ''; // Limpiar tabla
+                tbody.innerHTML = '';
                 
                 if (data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="3" class="text-center">No hay estudiantes registrados.</td></tr>';
@@ -46,9 +65,38 @@
                 });
             })
             .catch(error => {
-                console.error('Error fetching students:', error);
-                document.getElementById('students-table-body').innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar los estudiantes.</td></tr>';
+                console.error('Error:', error);
+                document.getElementById('students-table-body').innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error al cargar.</td></tr>';
             });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Cargar lista inicial
+        loadStudents();
+
+        // Manejar envío del formulario
+        document.getElementById('add-student-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const first_name = document.getElementById('first_name').value;
+            const last_name = document.getElementById('last_name').value;
+
+            fetch('/api/students/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ first_name, last_name })
+            })
+            .then(response => {
+                if(response.ok) {
+                    document.getElementById('add-student-form').reset();
+                    loadStudents(); // Recargar la tabla
+                } else {
+                    alert("Hubo un error al guardar.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
     });
 </script>
 {% endblock scripts %}
